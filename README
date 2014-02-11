@@ -30,7 +30,7 @@ Sparse data is OK. Stochastic gradient descent is sensitive to feature scaling, 
 Test example
 ------------
 
-This uses training/test data from Reuters articles are about corporate acquisitions, borrowed from here: http://svmlight.joachims.org/. Use the -v flag to see the prediction results.
+This uses training/test data from Reuters articles about corporate acquisitions, borrowed from here: http://svmlight.joachims.org/. Use the -v flag to see the prediction results.
 
 ./lr_sgd train.dat test.dat
 # called with:       ./lr_sgd train.dat test.dat 

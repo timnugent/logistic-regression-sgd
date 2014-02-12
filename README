@@ -1,14 +1,14 @@
-Logistic regression using stochastic gradient descent
------------------------------------------------------
+L1-regularized logistic regression using stochastic gradient descent
+--------------------------------------------------------------------
 (c) Tim Nugent
 
-Compile by running 'make'. Uses std=c++11 - on older compilers you may need to change this to 'std=c++0x' in the Makefile.
+Compile by running 'make'. Uses -std=c++11 - on older compilers you may need to change this to -std=c++0x in the Makefile.
 
 Run all tests with 'make test'
 
 Run the train/classify tool as follows:
 
-	./lr_sgd train.dat test.dat
+	./lr_sgd -i 1000 train.dat test.dat
 
 Training and test data should be in svm-light/libsvm format, e.g.
 
@@ -24,21 +24,78 @@ Sparse data is OK. Stochastic gradient descent is sensitive to feature scaling, 
 	-i <int>   Maximum iterations. default 50000
 	-e <float> Convergence rate. default 0.005
 	-a <float> Learning rate. default 0.001
+	-l <float> L1 regularization weight. default 0.0001
 	-m <file>  Write weights to model file
 	-v         Verbose.
+
+L1-regularization is via the cumulative approach described in:
+
+Tsuruoka, Y., Tsujii, J., and Ananiadou, S., 2009
+http://aclweb.org/anthology/P/P09/P09-1054.pdf
 
 Test example
 ------------
 
 This uses training/test data from Reuters articles about corporate acquisitions, borrowed from here: http://svmlight.joachims.org/. Use the -v flag to see the prediction results.
 
-./lr_sgd train.dat test.dat
-# called with:       ./lr_sgd train.dat test.dat 
+With L1-regularization:
+
+./lr_sgd -m model_l1.out train.dat test.dat
+# called with:       ./lr_sgd -m model_l1.out train.dat test.dat 
 # learning rate:     0.001
 # convergence rate:  0.005
+# l1 penalty weight: 0.0001
 # max. iterations:   50000
 # training data:     train.dat
 # test data:         test.dat
+# model output:      model_l1.out
+# training examples: 2000
+# features:          7034
+# stochastic gradient descent:
+# convergence: 0.0488 iterations: 100
+# convergence: 0.0356 iterations: 200
+# convergence: 0.0281 iterations: 300
+# convergence: 0.0232 iterations: 400
+# convergence: 0.0198 iterations: 500
+# convergence: 0.0173 iterations: 600
+# convergence: 0.0154 iterations: 700
+# convergence: 0.0139 iterations: 800
+# convergence: 0.0127 iterations: 900
+# convergence: 0.0117 iterations: 1000
+# convergence: 0.0108 iterations: 1100
+# convergence: 0.0100 iterations: 1200
+# convergence: 0.0094 iterations: 1300
+# convergence: 0.0089 iterations: 1400
+# convergence: 0.0084 iterations: 1500
+# convergence: 0.0080 iterations: 1600
+# convergence: 0.0075 iterations: 1700
+# convergence: 0.0072 iterations: 1800
+# convergence: 0.0069 iterations: 1900
+# convergence: 0.0066 iterations: 2000
+# convergence: 0.0063 iterations: 2100
+# convergence: 0.0061 iterations: 2200
+# convergence: 0.0059 iterations: 2300
+# convergence: 0.0057 iterations: 2400
+# convergence: 0.0055 iterations: 2500
+# convergence: 0.0054 iterations: 2600
+# convergence: 0.0052 iterations: 2700
+# convergence: 0.0051 iterations: 2800
+# sparsity:    0.1483 (1043/7034)
+# written weights to file model_l1.out
+# classifying:
+# accuracy:    97.33 % (584/600)
+
+Without L1-regularization:
+
+./lr_sgd -m model.out -l 0.0 train.dat test.dat
+# called with:       ./lr_sgd -m model_l1.out -l 0.0 train.dat test.dat 
+# learning rate:     0.001
+# convergence rate:  0.005
+# l1 penalty weight: 0
+# max. iterations:   50000
+# training data:     train.dat
+# test data:         test.dat
+# model output:      model.out
 # training examples: 2000
 # features:          7034
 # stochastic gradient descent:
@@ -78,12 +135,9 @@ This uses training/test data from Reuters articles about corporate acquisitions,
 # convergence: 0.0053 iterations: 3400
 # convergence: 0.0052 iterations: 3500
 # convergence: 0.0051 iterations: 3600
+# sparsity:    1.0000 (7034/7034)
+# written weights to file model.out
 # classifying:
-# accuracy: 97.83 % (587/600)
-
-
-
-
-
+# accuracy:    97.83 % (587/600)
 
 

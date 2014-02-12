@@ -38,6 +38,7 @@ void usage(const char* prog){
    cout << "-i <int>   Maximum iterations. default 50000" << endl;   
    cout << "-e <float> Convergence rate. default 0.005" << endl;    
    cout << "-a <float> Learning rate. default 0.001" << endl; 
+   cout << "-l <float> L1 regularization weight. default 0.0001" << endl; 
    cout << "-m <file>  Write weights to model file" << endl;    
    cout << "-v         Verbose." << endl << endl;      
 }
@@ -55,6 +56,11 @@ double vecnorm(map<int,double>& w1, map<int,double>& w2) {
 }
 
 double sigmoid(double x){
+
+    static double overflow = 20.0;
+    if (x > overflow) x = overflow;
+    if (x < -overflow) x = -overflow;
+
     return 1.0/(1.0 + exp(-x));
 }
 
@@ -73,6 +79,8 @@ int main(int argc, const char* argv[]){
 
     // Learning rate
     double alpha = 0.001;
+    // Learning rate
+    double l1 = 0.0001;
     // Max iterations
     unsigned int maxit = 50000;
     // Shuffle data set
@@ -106,6 +114,9 @@ int main(int argc, const char* argv[]){
             if(string(argv[i]) == "-e" && i < argc-1){
                 eps = atof(argv[i+1]);
             }
+            if(string(argv[i]) == "-l" && i < argc-1){
+                l1 = atof(argv[i+1]);
+            }
             if(string(argv[i]) == "-v"){
                 verbose = 1;
             }
@@ -119,6 +130,7 @@ int main(int argc, const char* argv[]){
 
     cout << "# learning rate:     " << alpha << endl;
     cout << "# convergence rate:  " << eps << endl;
+    cout << "# l1 penalty weight: " << l1 << endl;
     cout << "# max. iterations:   " << maxit << endl;    
     cout << "# training data:     " << argv[argc-2] << endl;
     cout << "# test data:         " << argv[argc-1] << endl;
@@ -126,6 +138,7 @@ int main(int argc, const char* argv[]){
 
     vector<map<int,double> > data;
     map<int,double> weights;
+    map<int,double> total_l1;
 
     ifstream fin(argv[argc-2]);
     fin.ignore();
@@ -144,6 +157,7 @@ int main(int argc, const char* argv[]){
                     vector<string> feat_val = split(tokens[i],':');
                     example[atoi(feat_val[0].c_str())] = atof(feat_val[1].c_str());
                     weights[atoi(feat_val[0].c_str())] = 0.0;
+                    total_l1[atoi(feat_val[0].c_str())] = 0.0;
                 }
                 data.push_back(example);
                 //if(verbose) cout << "read example " << data.size() << " - found " << example.size()-1 << " features." << endl; 
@@ -155,28 +169,42 @@ int main(int argc, const char* argv[]){
     cout << "# training examples: " << data.size() << endl;
     cout << "# features:          " << weights.size() << endl;
 
+    double mu = 0.0;
     double norm = 1.0;
     unsigned int n = 0;
     unsigned int correct = 0;
     unsigned int total = 0;
     random_device rd;
     mt19937 g(rd());
-    vector<int> indicies(data.size());
-    iota(indicies.begin(),indicies.end(),0);
+    vector<int> index(data.size());
+    iota(index.begin(),index.end(),0);
 
     cout << "# stochastic gradient descent:" << endl;
     while(norm > eps){
     //for(unsigned int n = 1; n <= maxit; n++){
 
         map<int,double> old_weights(weights);
-        if(shuf) shuffle(indicies.begin(),indicies.end(),g);
+        if(shuf) shuffle(index.begin(),index.end(),g);
 
         for (unsigned int i = 0; i < data.size(); i++){
-            int label = data[indicies[i]][0];
-            double predicted = classify(data[indicies[i]],weights);
-            for(auto it = data[indicies[i]].begin(); it != data[indicies[i]].end(); it++){
+            mu += (l1*alpha);
+            int label = data[index[i]][0];
+            double predicted = classify(data[index[i]],weights);
+            for(auto it = data[index[i]].begin(); it != data[index[i]].end(); it++){
                 if(it->first != 0){
                     weights[it->first] += alpha * (label - predicted) * it->second;
+                    if(l1){
+                        // Cumulative L1-regularization
+                        // Tsuruoka, Y., Tsujii, J., and Ananiadou, S., 2009
+                        // http://aclweb.org/anthology/P/P09/P09-1054.pdf
+                        double z = weights[it->first];
+                        if(weights[it->first] > 0.0){
+                            weights[it->first] = max(0.0,(double)(weights[it->first] - (mu + total_l1[it->first])));
+                        }else if(weights[it->first] < 0.0){
+                            weights[it->first] = min(0.0,(double)(weights[it->first] + (mu - total_l1[it->first])));
+                        }
+                        total_l1[it->first] += (weights[it->first] - z);
+                    }    
                 }
             }
         }
@@ -195,11 +223,17 @@ int main(int argc, const char* argv[]){
         }               
     }
 
+    unsigned int sparsity = 0;
+    for(auto it = weights.begin(); it != weights.end(); it++){
+        if(it->second  != 0) sparsity++;
+    }
+    printf("# sparsity:    %1.4f (%i/%i)\n",(double)sparsity/weights.size(),sparsity,(int)weights.size());     
+
     if(model.length()){
         ofstream outfile;
         outfile.open(model.c_str());  
         for(auto it = weights.begin(); it != weights.end(); it++){
-            outfile << it->first << " " << it->second << endl;
+            if(it->second) outfile << it->first << " " << it->second << endl;
         }
         outfile.close();
         cout << "# written weights to file " << model << endl;
@@ -245,7 +279,7 @@ int main(int argc, const char* argv[]){
     }
     fin.close();
 
-    printf ("# accuracy: %3.2f %% (%i/%i)\n", (100*(double)correct/total),correct,total);
+    printf ("# accuracy:    %3.2f %% (%i/%i)\n", (100*(double)correct/total),correct,total);
 
     return(0);
 

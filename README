@@ -8,7 +8,17 @@ Run all tests with 'make test'
 
 Run the train/classify tool as follows:
 
-	./lr_sgd -i 1000 train.dat test.dat
+	./lr_sgd -o weights.out -p predict.out -t test.dat train.dat
+
+This trains using train.dat, writes the weights to weights.out, then classifies test.dat and writes predictions to predict.out.
+
+Just train and write weights:
+	
+	./lr_sgd -o weights.out train.dat
+
+Just classify using weights and test files:
+
+	./lr_sgd -m weights.out -p predict.out -t test.dat
 
 Training and test data should be in svm-light/libsvm format, e.g.
 
@@ -17,7 +27,8 @@ Training and test data should be in svm-light/libsvm format, e.g.
 
 Sparse data is OK. Stochastic gradient descent is sensitive to feature scaling, so it is highly recommended that you scale your data e.g. by standardising to Z-scores, or scaling in the range [0,1]. Only 2 data classes are permitted (e.g. 0 and 1, or -1 and 1). Full options are as follows:
 
-	./lr_sgd [options] training_data test_data
+	Usage:
+	./lr_sgd [options] [training_data]
 
 	Options:
 	-s <int>   Shuffle dataset after each iteration. default 1
@@ -25,7 +36,11 @@ Sparse data is OK. Stochastic gradient descent is sensitive to feature scaling, 
 	-e <float> Convergence rate. default 0.005
 	-a <float> Learning rate. default 0.001
 	-l <float> L1 regularization weight. default 0.0001
-	-m <file>  Write weights to model file
+	-m <file>  Read weights from file
+	-o <file>  Write weights to file
+	-t <file>  Test file to classify
+	-p <file>  Write predictions to file
+	-r         Randomise weights between -1 and 1, otherwise 0
 	-v         Verbose.
 
 L1-regularization is via the cumulative approach described in:
@@ -40,104 +55,120 @@ This uses training/test data from Reuters articles about corporate acquisitions,
 
 With L1-regularization:
 
-./lr_sgd -m model_l1.out train.dat test.dat
-# called with:       ./lr_sgd -m model_l1.out train.dat test.dat 
+./lr_sgd -o weights.out -p predict.out -t test.dat train.dat
+# called with:       ./lr_sgd -o weights.out -p predict.out -t test.dat train.dat 
 # learning rate:     0.001
 # convergence rate:  0.005
 # l1 penalty weight: 0.0001
 # max. iterations:   50000
 # training data:     train.dat
+# model output:      weights.out
 # test data:         test.dat
-# model output:      model_l1.out
+# predictions:       predict.out
 # training examples: 2000
 # features:          7034
-# stochastic gradient descent:
-# convergence: 0.0488 iterations: 100
-# convergence: 0.0356 iterations: 200
-# convergence: 0.0281 iterations: 300
-# convergence: 0.0232 iterations: 400
-# convergence: 0.0198 iterations: 500
-# convergence: 0.0173 iterations: 600
-# convergence: 0.0154 iterations: 700
-# convergence: 0.0139 iterations: 800
-# convergence: 0.0127 iterations: 900
-# convergence: 0.0117 iterations: 1000
-# convergence: 0.0108 iterations: 1100
-# convergence: 0.0100 iterations: 1200
-# convergence: 0.0094 iterations: 1300
-# convergence: 0.0089 iterations: 1400
-# convergence: 0.0084 iterations: 1500
-# convergence: 0.0080 iterations: 1600
-# convergence: 0.0075 iterations: 1700
-# convergence: 0.0072 iterations: 1800
-# convergence: 0.0069 iterations: 1900
-# convergence: 0.0066 iterations: 2000
-# convergence: 0.0063 iterations: 2100
-# convergence: 0.0061 iterations: 2200
-# convergence: 0.0059 iterations: 2300
-# convergence: 0.0057 iterations: 2400
-# convergence: 0.0055 iterations: 2500
-# convergence: 0.0054 iterations: 2600
-# convergence: 0.0052 iterations: 2700
-# convergence: 0.0051 iterations: 2800
+# stochastic gradient descent
+# convergence: 0.0488 l1-norm: 1.4560e+02 iterations: 100
+# convergence: 0.0356 l1-norm: 2.4081e+02 iterations: 200
+# convergence: 0.0281 l1-norm: 3.1019e+02 iterations: 300
+# convergence: 0.0233 l1-norm: 3.6375e+02 iterations: 400
+# convergence: 0.0198 l1-norm: 4.0679e+02 iterations: 500
+# convergence: 0.0173 l1-norm: 4.4234e+02 iterations: 600
+# convergence: 0.0154 l1-norm: 4.7222e+02 iterations: 700
+# convergence: 0.0139 l1-norm: 4.9784e+02 iterations: 800
+# convergence: 0.0127 l1-norm: 5.1999e+02 iterations: 900
+# convergence: 0.0117 l1-norm: 5.3936e+02 iterations: 1000
+# convergence: 0.0108 l1-norm: 5.5645e+02 iterations: 1100
+# convergence: 0.0101 l1-norm: 5.7178e+02 iterations: 1200
+# convergence: 0.0094 l1-norm: 5.8565e+02 iterations: 1300
+# convergence: 0.0089 l1-norm: 5.9820e+02 iterations: 1400
+# convergence: 0.0084 l1-norm: 6.0956e+02 iterations: 1500
+# convergence: 0.0079 l1-norm: 6.2004e+02 iterations: 1600
+# convergence: 0.0076 l1-norm: 6.2980e+02 iterations: 1700
+# convergence: 0.0072 l1-norm: 6.3883e+02 iterations: 1800
+# convergence: 0.0069 l1-norm: 6.4721e+02 iterations: 1900
+# convergence: 0.0066 l1-norm: 6.5499e+02 iterations: 2000
+# convergence: 0.0064 l1-norm: 6.6228e+02 iterations: 2100
+# convergence: 0.0061 l1-norm: 6.6908e+02 iterations: 2200
+# convergence: 0.0059 l1-norm: 6.7543e+02 iterations: 2300
+# convergence: 0.0057 l1-norm: 6.8134e+02 iterations: 2400
+# convergence: 0.0055 l1-norm: 6.8684e+02 iterations: 2500
+# convergence: 0.0053 l1-norm: 6.9202e+02 iterations: 2600
+# convergence: 0.0052 l1-norm: 6.9694e+02 iterations: 2700
+# convergence: 0.0050 l1-norm: 7.0160e+02 iterations: 2800
 # sparsity:    0.1483 (1043/7034)
-# written weights to file model_l1.out
-# classifying:
-# accuracy:    97.33 % (584/600)
+# written weights to file weights.out
+# classifying
+# accuracy:    0.9733 (584/600)
+# precision:   0.9581
+# recall:      0.9900
+# mcc:         0.9472
+# tp:          297
+# tn:          287
+# fp:          13
+# fn:          3
+# written predictions to file predict.out
 
 Without L1-regularization:
 
-./lr_sgd -m model.out -l 0.0 train.dat test.dat
-# called with:       ./lr_sgd -m model_l1.out -l 0.0 train.dat test.dat 
+./lr_sgd -l 0.0 -o weights.out -p predict.out -t test.dat train.dat
+# called with:       ./lr_sgd -l 0.0 -o weights.out -p predict.out -t test.dat train.dat 
 # learning rate:     0.001
 # convergence rate:  0.005
 # l1 penalty weight: 0
 # max. iterations:   50000
 # training data:     train.dat
+# model output:      weights.out
 # test data:         test.dat
-# model output:      model.out
+# predictions:       predict.out
 # training examples: 2000
 # features:          7034
-# stochastic gradient descent:
-# convergence: 0.0529 iterations: 100
-# convergence: 0.0390 iterations: 200
-# convergence: 0.0311 iterations: 300
-# convergence: 0.0260 iterations: 400
-# convergence: 0.0224 iterations: 500
-# convergence: 0.0197 iterations: 600
-# convergence: 0.0177 iterations: 700
-# convergence: 0.0161 iterations: 800
-# convergence: 0.0147 iterations: 900
-# convergence: 0.0136 iterations: 1000
-# convergence: 0.0127 iterations: 1100
-# convergence: 0.0119 iterations: 1200
-# convergence: 0.0112 iterations: 1300
-# convergence: 0.0106 iterations: 1400
-# convergence: 0.0100 iterations: 1500
-# convergence: 0.0096 iterations: 1600
-# convergence: 0.0091 iterations: 1700
-# convergence: 0.0087 iterations: 1800
-# convergence: 0.0084 iterations: 1900
-# convergence: 0.0080 iterations: 2000
-# convergence: 0.0077 iterations: 2100
-# convergence: 0.0075 iterations: 2200
-# convergence: 0.0072 iterations: 2300
-# convergence: 0.0070 iterations: 2400
-# convergence: 0.0068 iterations: 2500
-# convergence: 0.0066 iterations: 2600
-# convergence: 0.0064 iterations: 2700
-# convergence: 0.0062 iterations: 2800
-# convergence: 0.0060 iterations: 2900
-# convergence: 0.0059 iterations: 3000
-# convergence: 0.0057 iterations: 3100
-# convergence: 0.0056 iterations: 3200
-# convergence: 0.0054 iterations: 3300
-# convergence: 0.0053 iterations: 3400
-# convergence: 0.0052 iterations: 3500
-# convergence: 0.0051 iterations: 3600
+# stochastic gradient descent
+# convergence: 0.0529 l1-norm: 2.3400e+02 iterations: 100
+# convergence: 0.0390 l1-norm: 4.0495e+02 iterations: 200
+# convergence: 0.0311 l1-norm: 5.4213e+02 iterations: 300
+# convergence: 0.0260 l1-norm: 6.5733e+02 iterations: 400
+# convergence: 0.0224 l1-norm: 7.5714e+02 iterations: 500
+# convergence: 0.0197 l1-norm: 8.4550e+02 iterations: 600
+# convergence: 0.0177 l1-norm: 9.2504e+02 iterations: 700
+# convergence: 0.0161 l1-norm: 9.9751e+02 iterations: 800
+# convergence: 0.0147 l1-norm: 1.0642e+03 iterations: 900
+# convergence: 0.0136 l1-norm: 1.1260e+03 iterations: 1000
+# convergence: 0.0127 l1-norm: 1.1838e+03 iterations: 1100
+# convergence: 0.0119 l1-norm: 1.2380e+03 iterations: 1200
+# convergence: 0.0112 l1-norm: 1.2892e+03 iterations: 1300
+# convergence: 0.0106 l1-norm: 1.3376e+03 iterations: 1400
+# convergence: 0.0100 l1-norm: 1.3836e+03 iterations: 1500
+# convergence: 0.0096 l1-norm: 1.4276e+03 iterations: 1600
+# convergence: 0.0091 l1-norm: 1.4695e+03 iterations: 1700
+# convergence: 0.0087 l1-norm: 1.5097e+03 iterations: 1800
+# convergence: 0.0084 l1-norm: 1.5483e+03 iterations: 1900
+# convergence: 0.0080 l1-norm: 1.5854e+03 iterations: 2000
+# convergence: 0.0077 l1-norm: 1.6211e+03 iterations: 2100
+# convergence: 0.0075 l1-norm: 1.6556e+03 iterations: 2200
+# convergence: 0.0072 l1-norm: 1.6890e+03 iterations: 2300
+# convergence: 0.0070 l1-norm: 1.7213e+03 iterations: 2400
+# convergence: 0.0068 l1-norm: 1.7525e+03 iterations: 2500
+# convergence: 0.0066 l1-norm: 1.7829e+03 iterations: 2600
+# convergence: 0.0064 l1-norm: 1.8124e+03 iterations: 2700
+# convergence: 0.0062 l1-norm: 1.8410e+03 iterations: 2800
+# convergence: 0.0060 l1-norm: 1.8689e+03 iterations: 2900
+# convergence: 0.0059 l1-norm: 1.8960e+03 iterations: 3000
+# convergence: 0.0057 l1-norm: 1.9225e+03 iterations: 3100
+# convergence: 0.0056 l1-norm: 1.9482e+03 iterations: 3200
+# convergence: 0.0054 l1-norm: 1.9734e+03 iterations: 3300
+# convergence: 0.0053 l1-norm: 1.9979e+03 iterations: 3400
+# convergence: 0.0052 l1-norm: 2.0219e+03 iterations: 3500
+# convergence: 0.0051 l1-norm: 2.0453e+03 iterations: 3600
 # sparsity:    1.0000 (7034/7034)
-# written weights to file model.out
-# classifying:
-# accuracy:    97.83 % (587/600)
-
-
+# written weights to file weights.out
+# classifying
+# accuracy:    0.9783 (587/600)
+# precision:   0.9674
+# recall:      0.9900
+# mcc:         0.9569
+# tp:          297
+# tn:          290
+# fp:          10
+# fn:          3
+# written predictions to file predict.out

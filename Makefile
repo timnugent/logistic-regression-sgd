@@ -5,5 +5,4 @@ clean:
 	rm lr_sgd
 
 test:
-	./lr_sgd train.dat test.dat
-
+	./lr_sgd -i 1000 -o weights.out -p predict.out -t test.dat train.dat

@@ -10,6 +10,7 @@
 #include <cmath>
 #include <vector>
 #include <sstream>
+#include <numeric>
 #include <algorithm>
 #include <map>
 

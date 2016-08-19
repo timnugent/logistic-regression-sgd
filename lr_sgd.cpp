@@ -78,13 +78,17 @@ double sigmoid(double x){
     return 1.0/(1.0 + exp(-x));
 }
 
-double classify(map<int,double>& features, map<int,double>& weights){
+double classify(vector<pair<int,double> >& features, map<int,double>& weights){
 
     double logit = 0.0;
-    for(auto it = features.begin(); it != features.end(); it++){
-        if(it->first != 0){
-            logit += it->second * weights[it->first];
-        }
+
+    int i = 0;
+    int num = features.size();
+
+    #pragma omp parallel for private(i) \
+		shared(num, features, weights) reduction(+:logit)
+    for (i = 1; i < num; i++) {
+        logit += (features[i]).second * weights[(features[i]).first];
     }
     return sigmoid(logit);
 }
@@ -174,7 +178,7 @@ int main(int argc, const char* argv[]){
     if(test_file.length()) cout << "# test data:         " << test_file << endl;
     if(predict_file.length()) cout << "# predictions:       " << predict_file << endl;
 
-    vector<map<int,double> > data;
+    vector<vector<pair<int,double> > > data;
     map<int,double> weights;
     map<int,double> total_l1;
     random_device rd;
@@ -210,17 +214,17 @@ int main(int argc, const char* argv[]){
             if(line.length()){
                 if(line[0] != '#' && line[0] != ' '){
                     vector<string> tokens = split(line,' ');
-                    map<int,double> example;
+                    vector<pair<int,double> > example;
                     if(atoi(tokens[0].c_str()) == 1){
-                        example[0] = 1;
+                        example.push_back(pair<int, double>(0, 1));
                     }else{
-                        example[0] = 0;
+                        example.push_back(pair<int, double>(0, 0));
                     }
                     for(unsigned int i = 1; i < tokens.size(); i++){
                         //if(strstr (tokens[i],"#") == NULL){
                             vector<string> feat_val = split(tokens[i],':');
                             if(feat_val.size() == 2){
-                                example[atoi(feat_val[0].c_str())] = atof(feat_val[1].c_str());
+                                example.push_back(pair<int, double>(atoi(feat_val[0].c_str()), atof(feat_val[1].c_str())));
                                 if(randw){
                                     weights[atoi(feat_val[0].c_str())] = -1.0+2.0*(double)rd()/rd.max();
                                 }else{
@@ -254,7 +258,7 @@ int main(int argc, const char* argv[]){
 
             for (unsigned int i = 0; i < data.size(); i++){
                 mu += (l1*alpha);
-                int label = data[index[i]][0];
+                int label = data[index[i]][0].second;
                 double predicted = classify(data[index[i]],weights);
                 for(auto it = data[index[i]].begin(); it != data[index[i]].end(); it++){
                     if(it->first != 0){
@@ -270,7 +274,7 @@ int main(int argc, const char* argv[]){
                                 weights[it->first] = min(0.0,(double)(weights[it->first] + (mu - total_l1[it->first])));
                             }
                             total_l1[it->first] += (weights[it->first] - z);
-                        }    
+                        }
                     }
                 }
             }
@@ -318,11 +322,11 @@ int main(int argc, const char* argv[]){
             if(line.length()){
                 if(line[0] != '#' && line[0] != ' '){
                     vector<string> tokens = split(line,' ');
-                    map<int,double> example;
+                    vector<pair<int,double> > example;
                     int label = atoi(tokens[0].c_str());
                     for(unsigned int i = 1; i < tokens.size(); i++){
                         vector<string> feat_val = split(tokens[i],':');
-                        example[atoi(feat_val[0].c_str())] = atof(feat_val[1].c_str());
+                        example.push_back(pair<int, double>(atoi(feat_val[0].c_str()), atof(feat_val[1].c_str())));
                     }
                     double predicted = classify(example,weights);
                     if(verbose){
